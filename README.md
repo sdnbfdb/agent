@@ -1,6 +1,13 @@
-# Agent - 智能对话助手（带历史记录功能）
+# Agent - 智能对话助手（DeepSeek + RAG）
 
-基于 **DeepSeek** 的本地智能对话助手，支持工具调用和历史记录管理。
+基于 **DeepSeek** 和 **ChromaDB** 的智能对话助手，支持工具调用、历史记录管理和 RAG 文档向量化。
+
+## ✨ 核心功能
+
+### 🤖 DeepSeek 对话
+- 使用 DeepSeek Chat API 进行智能对话
+- 支持上下文记忆（保留最近 10 轮对话）
+- 自动工具调用和结果整合
 
 ## ✨ 功能特性
 
@@ -26,15 +33,26 @@ Agent 会自动识别用户意图并调用相应工具：
 - "查看历史记录" → 调用历史查询
 - "我们对话过多少次？" → 调用统计查询
 
+### 📚 RAG 文档处理（新增）
+- Markdown 文本智能分片（typing 类型标注）
+- sentence-transformers 向量化（BAAI/bge-small-zh-v1.5）
+- ChromaDB 向量数据库存储
+- 语义相似度搜索
+
 ## 📁 项目结构
 
 ```
 agent/
-├── use.py              # Agent 启动程序（主入口）
-├── tool.py             # 工具函数集合
-├── history.py          # 历史记录管理
-├── history.txt         # 数据存储文件（自动生成）
-├── .gitignore
+├── use.py                      # Agent 主程序（DeepSeek API）
+├── tool.py                     # 工具函数集合
+├── history.py                  # 历史记录管理
+├── markdown_chunker.py         # Markdown 分片处理器
+├── chrome.py                   # 文本向量化生成器
+├── chroma_manager.py           # ChromaDB 管理器
+├── test_chroma.py              # 简单测试脚本
+├── cc.md                       # 示例文本（朱自清《匆匆》）
+├── chroma_db/                  # 向量数据库目录
+├── DEEPSEEK_INTEGRATION.md     # DeepSeek 集成指南 ⭐
 └── README.md
 ```
 
@@ -124,7 +142,7 @@ python use.py
 
 ### DeepSeek API 配置
 
-详细配置说明请查看：[DEEPSEEK_CONFIG.md](DEEPSEEK_CONFIG.md)
+详细配置说明请查看：[DEEPSEEK_CONFIG.md](DEEPSEEK_CONFIG.md) 或 [DEEPSEEK_INTEGRATION.md](DEEPSEEK_INTEGRATION.md) ⭐
 
 **快速配置**：
 1. 获取 API Key：https://platform.deepseek.com/
@@ -135,6 +153,36 @@ python use.py
 
 - **位置查询**: 使用 ipapi.co、ip-api.com、ipinfo.io（自动故障转移）
 - **天气查询**: 使用 Open-Meteo API（免费，无需 API key）
+
+## 🆕 新功能
+
+### RAG 文档向量化流程
+
+```bash
+# 1. 分片处理
+python markdown_chunker.py
+
+# 2. 生成向量并存储到 ChromaDB
+$env:HF_ENDPOINT="https://hf-mirror.com"; python chrome.py
+
+# 3. 查询测试
+$env:HF_ENDPOINT="https://hf-mirror.com"; python test_chroma.py
+```
+
+## 🆕 新功能
+
+### RAG 文档向量化流程
+
+```bash
+# 1. 分片处理
+python markdown_chunker.py
+
+# 2. 生成向量并存储到 ChromaDB
+$env:HF_ENDPOINT="https://hf-mirror.com"; python chrome.py
+
+# 3. 查询测试
+$env:HF_ENDPOINT="https://hf-mirror.com"; python test_chroma.py
+```
 
 ## 📝 使用示例
 
