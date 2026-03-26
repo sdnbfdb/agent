@@ -228,4 +228,9 @@ MIT License
 
 ## 📧 联系方式
 
-如有问题请提交 Issue。
+- **Email**: sanjnw378@gmail.com
+- **GitHub**: https://github.com/sdnbfdb/agent
+
+如有问题或建议，请通过以下方式联系：
+1. 提交 GitHub Issue
+2. 发送邮件至 sanjnw378@gmail.com
