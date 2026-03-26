@@ -1,6 +1,13 @@
 # Agent - 智能对话助手（带历史记录功能）
 
-基于 Ollama 的本地智能对话助手，支持工具调用和历史记录管理。
+基于 Ollama 和 DeepSeek 模型的本地智能对话助手，支持工具调用和历史记录管理。
+
+## ✨ 功能特性
+
+### 🧠 核心能力
+
+- **DeepSeek 模型推理** - 使用 DeepSeek-R1 模型进行深度思考和推理
+- **智能工具调用** - 自动识别用户意图并调用相应工具
 
 ## ✨ 功能特性
 
@@ -18,7 +25,7 @@
 - 按时间戳组织会话
 - 隐私数据本地存储
 
-### 🤖 智能工具调用
+### 🔧 配置说明
 
 Agent 会自动识别用户意图并调用相应工具：
 - "我在哪里？" → 调用位置查询
@@ -114,17 +121,25 @@ python use.py
 }
 ```
 
-## 🔧 配置说明
+### 🔧 配置说明
 
-### Ollama 配置
+#### Ollama 配置
 
 编辑 `use.py` 中的配置：
 
 ```python
 OLLAMA_EXE = r"C:\Users\sanjin\AppData\Local\Programs\Ollama\ollama.exe"
 OLLAMA_MODELS_PATH = r"E:\ollama_models"
-MODEL_NAME = "agent"
+MODEL_NAME = "deepseek-r1"  # DeepSeek-R1 模型
 ```
+
+#### 模型要求
+
+- **推理模型**: DeepSeek-R1 (通过 Ollama 运行)
+- **安装方法**: 
+  ```bash
+  ollama pull deepseek-r1
+  ```
 
 ### API 说明
 

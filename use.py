@@ -9,6 +9,8 @@ Agent 启动程序
 - get_weather_by_location(location): 查询天气
 - query_history(keyword, limit): 查询历史对话
 - get_history_stats(): 获取历史统计
+
+使用 DeepSeek 模型进行思考和推理
 """
 
 import subprocess
@@ -23,10 +25,10 @@ from tool import (
     get_history_stats
 )
 
-# 配置路径
+# 配置
 OLLAMA_EXE = r"C:\Users\sanjin\AppData\Local\Programs\Ollama\ollama.exe"
 OLLAMA_MODELS_PATH = r"E:\ollama_models"
-MODEL_NAME = "agent"
+MODEL_NAME = "deepseek-r1"  # 使用 DeepSeek 模型进行思考
 
 
 def setup_environment():
