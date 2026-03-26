@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Agent 启动程序
-用于启动 Ollama 的 agent 模型并与之交互
+用于调用 DeepSeek 模型进行思考推理，并整合工具调用能力
 
 支持的工具 (来自 tool.py):
 - get_current_location(): 获取当前位置
@@ -10,13 +10,14 @@ Agent 启动程序
 - query_history(keyword, limit): 查询历史对话
 - get_history_stats(): 获取历史统计
 
-使用 DeepSeek 模型进行思考和推理
+模型：DeepSeek（通过 API 调用）
 """
 
 import subprocess
 import sys
 import os
 import re
+import requests
 from history import ConversationHistory
 from tool import (
     get_current_location,
@@ -25,59 +26,80 @@ from tool import (
     get_history_stats
 )
 
-# 配置
-OLLAMA_EXE = r"C:\Users\sanjin\AppData\Local\Programs\Ollama\ollama.exe"
-OLLAMA_MODELS_PATH = r"E:\ollama_models"
-MODEL_NAME = "deepseek-r1"  # 使用 DeepSeek 模型进行思考
+# DeepSeek API 配置
+DEEPSEEK_API_KEY = "sk-a980b787224a402ab52e0e8dd000494d"  # 从 Ollama Modelfile 中获取
+DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
+MODEL_NAME = "deepseek-chat"
 
 
 def setup_environment():
-    """设置环境变量"""
+    """设置环境变量（DeepSeek 不需要特殊配置，保留此函数以兼容）"""
     env = os.environ.copy()
-    env["OLLAMA_MODELS"] = OLLAMA_MODELS_PATH
     return env
 
 
 def check_ollama_running(env):
-    """检查 Ollama 服务是否运行"""
+    """检查 DeepSeek API 是否可用（保留函数名以兼容）"""
     try:
-        result = subprocess.run(
-            [OLLAMA_EXE, "list"],
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        return result.returncode == 0
+        # 简单的 API 连通性测试
+        headers = {
+            'Authorization': f'Bearer {DEEPSEEK_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        test_data = {
+            'model': MODEL_NAME,
+            'messages': [{'role': 'user', 'content': 'Hello'}],
+            'max_tokens': 5
+        }
+        response = requests.post(DEEPSEEK_API_URL, json=test_data, headers=headers, timeout=10)
+        return response.status_code == 200
     except Exception as e:
-        print(f"检查 Ollama 服务失败：{e}")
+        print(f"⚠️  API 连接测试失败：{e}")
         return False
+
+
+def call_deepseek_api(messages: list, system_prompt: str = None) -> str:
+    """调用 DeepSeek API 进行思考推理
+    
+    Args:
+        messages: 对话消息列表
+        system_prompt: 可选的系统提示词
+        
+    Returns:
+        DeepSeek 返回的回复内容
+    """
+    try:
+        headers = {
+            'Authorization': f'Bearer {DEEPSEEK_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        # 构建请求数据
+        payload = {
+            'model': MODEL_NAME,
+            'messages': messages,
+            'temperature': 0.7,
+            'max_tokens': 2048
+        }
+        
+        # 如果有系统提示，添加到消息开头
+        if system_prompt:
+            payload['messages'].insert(0, {'role': 'system', 'content': system_prompt})
+        
+        response = requests.post(DEEPSEEK_API_URL, json=payload, headers=headers, timeout=60)
+        response.raise_for_status()
+        
+        result = response.json()
+        return result['choices'][0]['message']['content']
+        
+    except Exception as e:
+        return f"DeepSeek API 调用失败：{str(e)}"
 
 
 def start_ollama_service():
-    """启动 Ollama 服务"""
-    print("正在启动 Ollama 服务...")
-    try:
-        # 创建包含正确环境变量的启动信息
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        
-        env = os.environ.copy()
-        env["OLLAMA_MODELS"] = OLLAMA_MODELS_PATH
-        
-        subprocess.Popen(
-            [OLLAMA_EXE, "serve"],
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-            env=env,
-            startupinfo=startupinfo
-        )
-        import time
-        time.sleep(3)  # 等待服务启动
-        print("Ollama 服务已启动")
-        return True
-    except Exception as e:
-        print(f"启动 Ollama 服务失败：{e}")
-        return False
+    """启动 Ollama 服务（保留以兼容，但 DeepSeek 模式不需要）"""
+    print("⚠️  DeepSeek 模式不需要启动 Ollama 服务")
+    return True
 
 
 def call_tool(tool_name: str, params: dict = None):
@@ -179,11 +201,11 @@ def detect_tool_call(user_input: str) -> tuple:
         return 'get_weather_by_location', {'location': city}
     
     # 历史查询
-    if any(kw in user_lower for kw in ['历史记录', '聊天记录', '之前的对话', '之前问过', 'history', '记录']):
+    if any(kw in user_lower for kw in ['历史记录', '聊天记录', '之前的对话', '之前问过', 'history', '记录', '对话历史', '查看历史']):
         # 尝试提取关键词
         keyword = None
         if '关于' in user_input:
-            kw_match = re.search(r'关于 (.+?)(?:的|$)', user_input)
+            kw_match = re.search(r'关于 (.+?)(?:的 |$)', user_input)
             if kw_match:
                 keyword = kw_match.group(1)
         return 'query_history', {'keyword': keyword, 'limit': 5}
@@ -207,6 +229,9 @@ def run_agent_interactive(env, history: ConversationHistory):
     # 开始新会话
     history.start_session()
     
+    # 对话历史（用于保持上下文）
+    conversation_history = []
+    
     try:
         while True:
             user_input = input("\n你：").strip()
@@ -225,47 +250,50 @@ def run_agent_interactive(env, history: ConversationHistory):
                 print(f"\n🔧 调用工具：{tool_name}")
                 tool_result = call_tool(tool_name, tool_params)
                 
-                # 将工具结果添加到用户输入中
-                enhanced_prompt = f"""用户问题：{user_input}
+                # 将工具结果添加到对话历史中
+                messages = conversation_history.copy()
+                messages.append({
+                    'role': 'user', 
+                    'content': f"""用户问题：{user_input}
 
 --- 工具查询结果 ---
 {tool_result}
 --- 结束 ---
 
 请根据上面的工具查询结果，用自然语言回答用户的问题。如果工具返回了数据，就基于数据回答；如果没有数据，就如实告知用户。"""
+                })
                 
                 print(f"{MODEL_NAME}: ", end="", flush=True)
-                result = subprocess.run(
-                    [OLLAMA_EXE, "run", MODEL_NAME, enhanced_prompt],
-                    env=env,
-                    capture_output=True,
-                    timeout=300,
-                )
+                output = call_deepseek_api(messages)
+                print(output)
                 
-                if result.returncode == 0:
-                    output = result.stdout.decode('utf-8')
-                    print(output)
-                    history.add_conversation(user_input, output.strip())
-                else:
-                    error_msg = result.stderr.decode('utf-8', errors='ignore')
-                    print(f"错误：{error_msg}")
+                # 保存到历史记录
+                history.add_conversation(user_input, output.strip())
+                
+                # 更新对话历史（保留最近的 10 轮）
+                conversation_history.append({'role': 'user', 'content': user_input})
+                conversation_history.append({'role': 'assistant', 'content': output})
+                if len(conversation_history) > 20:  # 保留最近 10 轮（每轮 2 条消息）
+                    conversation_history = conversation_history[-20:]
+                    
             else:
                 # 不需要调用工具，直接对话
                 print(f"{MODEL_NAME}: ", end="", flush=True)
-                result = subprocess.run(
-                    [OLLAMA_EXE, "run", MODEL_NAME, user_input],
-                    env=env,
-                    capture_output=True,
-                    timeout=300,
-                )
                 
-                if result.returncode == 0:
-                    output = result.stdout.decode('utf-8')
-                    print(output)
-                    history.add_conversation(user_input, output.strip())
-                else:
-                    error_msg = result.stderr.decode('utf-8', errors='ignore')
-                    print(f"错误：{error_msg}")
+                messages = conversation_history.copy()
+                messages.append({'role': 'user', 'content': user_input})
+                
+                output = call_deepseek_api(messages)
+                print(output)
+                
+                # 保存到历史记录
+                history.add_conversation(user_input, output.strip())
+                
+                # 更新对话历史
+                conversation_history.append({'role': 'user', 'content': user_input})
+                conversation_history.append({'role': 'assistant', 'content': output})
+                if len(conversation_history) > 20:
+                    conversation_history = conversation_history[-20:]
         
         # 会话结束时保存所有记录
         history.save_session()
@@ -283,7 +311,7 @@ def run_agent_interactive(env, history: ConversationHistory):
 
 
 def run_agent_prompt(prompt, env, history: ConversationHistory):
-    """单次提示运行"""
+    """单次提示运行（DeepSeek API 模式）"""
     print(f"\n🤖 向 {MODEL_NAME} 提问：{prompt}\n")
     print("=" * 50)
     
@@ -291,28 +319,15 @@ def run_agent_prompt(prompt, env, history: ConversationHistory):
     history.start_session()
     
     try:
-        # 不使用 text=True，而是手动解码为 UTF-8
-        result = subprocess.run(
-            [OLLAMA_EXE, "run", MODEL_NAME, prompt],
-            env=env,
-            capture_output=True,
-            timeout=300,
-        )
+        # 调用 DeepSeek API
+        messages = [{'role': 'user', 'content': prompt}]
+        output = call_deepseek_api(messages)
+        print(output)
         
-        if result.returncode == 0:
-            # 使用 UTF-8 解码输出
-            output = result.stdout.decode('utf-8')
-            print(output)
-            
-            # 保存对话
-            history.add_conversation(prompt, output.strip())
-            history.save_session()
-        else:
-            error_msg = result.stderr.decode('utf-8', errors='ignore')
-            print(f"错误：{error_msg}")
-            
-    except subprocess.TimeoutExpired:
-        print("请求超时，请尝试更短的问题或增加超时时间")
+        # 保存对话
+        history.add_conversation(prompt, output.strip())
+        history.save_session()
+        
     except Exception as e:
         print(f"运行错误：{e}")
 
@@ -320,39 +335,31 @@ def run_agent_prompt(prompt, env, history: ConversationHistory):
 def main():
     """主函数"""
     print("╔════════════════════════════════════════╗")
-    print("║       Agent 启动程序（带历史记录）     ║")
+    print("║  Agent - DeepSeek 智能对话助手         ║")
+    print("║  (带历史记录功能)                      ║")
     print("╚════════════════════════════════════════╝\n")
     
     # 初始化历史记录管理器
     history = ConversationHistory()
     
-    # 设置环境变量（必须在启动服务前设置）
+    # 设置环境变量
     env = setup_environment()
-    os.environ["OLLAMA_MODELS"] = OLLAMA_MODELS_PATH
     
-    # 检查服务状态
+    # 检查 API 配置
+    if DEEPSEEK_API_KEY == "sk-your-api-key-here":
+        print("⚠️  警告：DeepSeek API Key 未配置！")
+        print("请编辑 use.py 文件，设置 DEEPSEEK_API_KEY")
+        print("获取 API Key: https://platform.deepseek.com/")
+        print("\n按 Enter 继续（使用演示模式）...")
+        input()
+    
+    # 测试 API 连接
+    print("🔍 正在测试 DeepSeek API 连接...")
     if not check_ollama_running(env):
-        if not start_ollama_service():
-            print("无法启动 Ollama 服务，程序退出")
-            sys.exit(1)
-    
-    # 检查模型是否存在
-    try:
-        result = subprocess.run(
-            [OLLAMA_EXE, "list"],
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        
-        if MODEL_NAME not in result.stdout:
-            print(f"错误：未找到模型 '{MODEL_NAME}'")
-            print("请先运行：ollama create agent -f E:\\ollama_models\\Modelfile")
-            sys.exit(1)
-    except Exception as e:
-        print(f"检查模型失败：{e}")
-        sys.exit(1)
+        print("❌ 无法连接到 DeepSeek API，请检查网络和 API Key 配置")
+        print("程序将继续运行，但可能会失败...\n")
+    else:
+        print("✅ DeepSeek API 连接正常\n")
     
     # 选择运行模式
     if len(sys.argv) > 1:

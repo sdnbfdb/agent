@@ -1,13 +1,6 @@
 # Agent - 智能对话助手（带历史记录功能）
 
-基于 Ollama 和 DeepSeek 模型的本地智能对话助手，支持工具调用和历史记录管理。
-
-## ✨ 功能特性
-
-### 🧠 核心能力
-
-- **DeepSeek 模型推理** - 使用 DeepSeek-R1 模型进行深度思考和推理
-- **智能工具调用** - 自动识别用户意图并调用相应工具
+基于 **DeepSeek** 的本地智能对话助手，支持工具调用和历史记录管理。
 
 ## ✨ 功能特性
 
@@ -25,7 +18,7 @@
 - 按时间戳组织会话
 - 隐私数据本地存储
 
-### 🔧 配置说明
+### 🤖 智能工具调用
 
 Agent 会自动识别用户意图并调用相应工具：
 - "我在哪里？" → 调用位置查询
@@ -50,23 +43,29 @@ agent/
 ### 环境要求
 
 - Python 3.8+
-- Ollama（已安装并配置）
-- 网络连接（用于位置和天气 API）
+- DeepSeek API Key（获取方式见 [DEEPSEEK_CONFIG.md](DEEPSEEK_CONFIG.md)）
+- 网络连接（用于 API 调用和工具查询）
 
 ### 安装与运行
 
 1. **克隆项目**
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/sdnbfdb/agent.git
 cd agent
 ```
 
-2. **运行 Agent**
+2. **配置 DeepSeek API Key**
+编辑 `use.py` 文件，设置你的 API Key：
+```python
+DEEPSEEK_API_KEY = "sk-your-actual-api-key"  # 替换为真实 API Key
+```
+
+3. **运行 Agent**
 ```bash
 python use.py
 ```
 
-3. **开始对话**
+4. **开始对话**
 ```
 你：你好
 你：我在哪里？
@@ -121,25 +120,16 @@ python use.py
 }
 ```
 
-### 🔧 配置说明
+## 🔧 配置说明
 
-#### Ollama 配置
+### DeepSeek API 配置
 
-编辑 `use.py` 中的配置：
+详细配置说明请查看：[DEEPSEEK_CONFIG.md](DEEPSEEK_CONFIG.md)
 
-```python
-OLLAMA_EXE = r"C:\Users\sanjin\AppData\Local\Programs\Ollama\ollama.exe"
-OLLAMA_MODELS_PATH = r"E:\ollama_models"
-MODEL_NAME = "deepseek-r1"  # DeepSeek-R1 模型
-```
-
-#### 模型要求
-
-- **推理模型**: DeepSeek-R1 (通过 Ollama 运行)
-- **安装方法**: 
-  ```bash
-  ollama pull deepseek-r1
-  ```
+**快速配置**：
+1. 获取 API Key：https://platform.deepseek.com/
+2. 编辑 `use.py`，设置 `DEEPSEEK_API_KEY`
+3. 运行 `python use.py` 开始使用
 
 ### API 说明
 
