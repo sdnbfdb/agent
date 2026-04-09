@@ -8,15 +8,30 @@ from datetime import datetime
 # 这些函数可以被 Ollama Agent 调用
 # ============================================================================
 
-def get_current_location():
+def get_current_location(default_city: str = None):
     """获取当前位置信息（使用多个备用 API）
     
     Agent 工具描述：获取用户当前的地理位置信息，包括 IP、城市、经纬度等
     返回格式：{'ip': str, 'city': str, 'region': str, 'country': str, 'latitude': float, 'longitude': float, 'loc': str}
     
+    Args:
+        default_city (str, optional): 默认城市名称，如果提供则直接返回该城市信息
+    
     Returns:
         位置信息字典
     """
+    # 如果提供了默认城市，直接返回
+    if default_city:
+        return {
+            'ip': 'N/A',
+            'city': default_city,
+            'region': default_city,
+            'country': 'CN',
+            'latitude': 36.1984,
+            'longitude': 113.1053,
+            'loc': f'36.1984,113.1053'
+        }
+    
     # API 列表，按优先级排序
     apis = [
         'https://ipapi.co/json',

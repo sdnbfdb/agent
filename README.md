@@ -79,8 +79,20 @@ DEEPSEEK_API_KEY = "sk-your-actual-api-key"  # 替换为真实 API Key
 ```
 
 3. **运行 Agent**
+
+**方式一：交互式对话模式（默认）**
 ```bash
 python use.py
+```
+
+**方式二：飞书机器人模式**
+```bash
+python use.py --robot
+```
+
+**方式三：命令行单次提问**
+```bash
+python use.py "你好，请介绍一下自己"
 ```
 
 4. **开始对话**

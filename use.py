@@ -25,7 +25,6 @@ from tool import (
     query_history,
     get_history_stats
 )
-
 # DeepSeek API 配置
 DEEPSEEK_API_KEY = "sk-a980b787224a402ab52e0e8dd000494d"  # 从 Ollama Modelfile 中获取
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
@@ -121,6 +120,9 @@ def call_tool(tool_name: str, params: dict = None):
         
         elif tool_name == 'get_weather_by_location':
             location = params.get('location') if params else None
+            # 如果没有指定位置，默认使用长治
+            if not location:
+                location = '长治'
             result = get_weather_by_location(location)
             if 'error' in result:
                 return f"天气查询失败：{result['error']}"
@@ -198,6 +200,7 @@ def detect_tool_call(user_input: str) -> tuple:
         # 尝试提取城市名
         city_match = re.search(r'(北京 | 上海 | 广州 | 深圳 | 杭州|beijing|shanghai|guangzhou|shenzhen|hangzhou)', user_lower)
         city = city_match.group(0) if city_match else None
+        # 如果没有指定城市，默认使用长治
         return 'get_weather_by_location', {'location': city}
     
     # 历史查询
@@ -332,8 +335,89 @@ def run_agent_prompt(prompt, env, history: ConversationHistory):
         print(f"运行错误：{e}")
 
 
+def start_feishu_robot():
+    """启动飞书机器人模式"""
+    print("╔════════════════════════════════════════╗")
+    print("║   飞书机器人 - DeepSeek Agent         ║")
+    print("║   (长连接 WebSocket 模式)              ║")
+    print("╚════════════════════════════════════════╝\n")
+    
+    # 检查配置
+    print("配置检查:")
+    print("-" * 60)
+    
+    try:
+        from robot import FEISHU_APP_ID, FEISHU_APP_SECRET
+        
+        checks = {
+            "飞书 App ID": FEISHU_APP_ID != "your_app_id",
+            "飞书 App Secret": FEISHU_APP_SECRET != "your_app_secret",
+            "DeepSeek API Key": DEEPSEEK_API_KEY != "sk-your-api-key-here"
+        }
+        
+        all_ok = True
+        for name, status in checks.items():
+            symbol = "✅" if status else "❌"
+            print(f"  {symbol} {name}")
+            if not status:
+                all_ok = False
+        
+        print()
+        
+        if not all_ok:
+            print("⚠️  部分配置未完成，请检查 robot.py 和 use.py\n")
+            return
+        else:
+            print("✅ 所有配置已完成！\n")
+        
+        # 启动提示
+        print("功能特性:")
+        print("-" * 60)
+        print("  ✅ 无需公网 IP")
+        print("  ✅ 无需 ngrok")
+        print("  ✅ 自动重连")
+        print("  ✅ 支持工具调用（天气、位置、历史记录）")
+        print()
+        
+        print("使用说明:")
+        print("-" * 60)
+        print("  1. 保持此程序运行")
+        print("  2. 在飞书中 @机器人 并发送消息")
+        print("  3. 按 Ctrl+C 退出")
+        print()
+        
+        print("支持的命令:")
+        print("-" * 60)
+        print("  - 天气怎么样？ -> 查询长治天气")
+        print("  - 北京天气 -> 查询指定城市天气")
+        print("  - 我在哪里？ -> 查询位置")
+        print("  - 查看历史记录 -> 查询历史对话")
+        print("  - 任意问题 -> DeepSeek 智能对话")
+        print()
+        
+        print("=" * 60)
+        print("正在启动服务...")
+        print("=" * 60)
+        print()
+        
+        # 导入并启动飞书机器人
+        from robot import main as robot_main
+        robot_main()
+        
+    except ImportError as e:
+        print(f"❌ 导入飞书机器人模块失败：{e}")
+        print("请运行：pip install lark-oapi")
+
+
 def main():
     """主函数"""
+    # 检查命令行参数
+    if len(sys.argv) > 1 and sys.argv[1] == '--robot':
+        # 启动飞书机器人模式
+        start_feishu_robot()
+        return
+    
+    # 默认：交互式对话模式
     print("╔════════════════════════════════════════╗")
     print("║  Agent - DeepSeek 智能对话助手         ║")
     print("║  (带历史记录功能)                      ║")
